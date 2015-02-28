@@ -1,11 +1,11 @@
 require(['../../idbstore.js'], function(IDBStore){
-	
+
 	var objStore;
-	
+
 	var nodeCache = {};
-	
+
 	function init(){
-		
+
 		// create a store ("table")
 	  objStore = new IDBStore({
 			storeName: 'objectstore',
@@ -13,25 +13,26 @@ require(['../../idbstore.js'], function(IDBStore){
 			autoIncrement: true,
 			onStoreReady: refreshTable
 		});
-		
+		objStore.then(refreshTable);
+
 		// create references for some nodes we have to work with
 		['submit', 'results-container'].forEach(function(id){
 			nodeCache[id] = document.getElementById(id);
 		});
-		
+
 		// and listen to the form's submit button.
 		nodeCache.submit.addEventListener('click', enterData);
 	}
-	
+
 	function refreshTable(){
-		objStore.getAll(listItems);
+		objStore.getAll().then(listItems);
 	}
-	
+
 	function listItems(data){
 		var header, tpl,
 			props = ['id'],
 			content = '';
-		
+
 		data.forEach(function(item){
 			for(var prop in item){
 				if(props.indexOf(prop) < 0){
@@ -39,25 +40,25 @@ require(['../../idbstore.js'], function(IDBStore){
 				}
 			}
 		});
-		
+
 		header = '<tr><th>' + props.join('</th><th>') + '</th></tr>';
 		tpl = '<tr><td>{' + props.join('}</td><td>{') + '}</td></tr>';
-		
+
 		data.forEach(function(item){
 			content += tpl.replace(/\{([^\}]+)\}/g, function(_, key){
 				return item[key] || '';
 			});
 		});
-		
+
 		nodeCache['results-container'].innerHTML = '<table>' + header + content + '</table>';
 	}
-	
+
 	function enterData(){
 		// read data from inputs
 		var propName, value, hasData,
 			data = {},
 			count = 4;
-		
+
 		while(--count){
 			propName = document.getElementById('prop_' + count).value.trim();
 			if(propName.length){
@@ -72,22 +73,22 @@ require(['../../idbstore.js'], function(IDBStore){
 		if(!hasData){
 			return;
 		}
-		
+
 		// and store them away.
-		objStore.put(data, refreshTable);
+		objStore.put(data).then(refreshTable);
 	}
-	
+
 	function clear(){
-		objStore.clear(refreshTable);
+		objStore.clear().then(refreshTable);
 	}
-	
+
 	// export some functions to the outside to
 	// make the onclick="" attributes work.
 	window.app = {
 		clear: clear
 	};
-	
+
 	// go!
 	init();
-	
+
 });

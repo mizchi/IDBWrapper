@@ -13,29 +13,28 @@ onmessage = function (evt) {
         storeName: 'worker-objectstore',
         keyPath: 'id',
         autoIncrement: true,
-        onStoreReady: function () {
-          initialized = true;
-          objStore.getAll(function (data) {
-            // tell the main thread that we're ready to go:
-            postMessage({
-              msg: 'ready',
-              data: data
-            });
+      }).then(function () {
+        initialized = true;
+        objStore.getAll(function (data) {
+          // tell the main thread that we're ready to go:
+          postMessage({
+            msg: 'ready',
+            data: data
           });
-        }
+        });
       });
       break;
     case 'add':
       if (!initialized) {
         throw new Error('IDBStore in worker not yet initialized');
       }
-      objStore.put(data, sendDump);
+      objStore.put(data).then(sendDump);
       break;
     case 'clear':
       if (!initialized) {
         throw new Error('IDBStore in worker not yet initialized');
       }
-      objStore.clear(sendDump);
+      objStore.clear().then(sendDump);
       break;
     default:
       throw new Error('Unable to process message: ' + JSON.stringify(evt.data));
@@ -44,7 +43,7 @@ onmessage = function (evt) {
 
 // send a dump of database contents to the main thread
 function sendDump () {
-  objStore.getAll(function (data) {
+  objStore.getAll().then(function (data) {
     postMessage({
       msg: 'dump',
       data: data

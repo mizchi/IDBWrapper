@@ -57,35 +57,35 @@
       age: Math.floor(Math.random() * (100 - 20)) + 20,
       id: id++
     };
-    store.put(dataObj, function (result) {
+    store.put(dataObj).then(function (result) {
       console.log('put() call success. Result:', result);
     });
   }
 
   function testRead (store) {
     store = store || store_1_1;
-    store.get(1, function (result) {
+    store.get(1).then(function (result) {
       console.log('get() call success. Result:', result);
     });
   }
 
   function testGetAll (store) {
     store = store || store_1_1;
-    store.getAll(function (result) {
+    store.getAll().then(function (result) {
       console.log('getAll() call success. Result:', result);
     });
   }
 
   function testRemove (store) {
     store = store || store_1_1;
-    store.remove(1, function (result) {
+    store.remove(1).then(function (result) {
       console.log('remove() call success. Result:', result);
     });
   }
 
   function testClear (store) {
     store = store || store_1_1;
-    store.clear(function (result) {
+    store.clear().then(function (result) {
       console.log('clear() call success. Result:', result);
     });
   }
@@ -102,9 +102,11 @@
       };
       list.push({ type: "put", value: dataObj });
     }
-    store.batch(list, function (result) {
+    store.batch(list)
+    .then(function (result) {
       console.log('batch() call success. Result:', result);
-    }, function (error) {
+    })
+    .catch(function (error) {
       console.log("error", error);
     });
   }
@@ -116,14 +118,14 @@
       dbVersion: '1',
       storeName: 'testStore_1_1',
       keyPath: 'id',
-      autoIncrement: true,
-      onStoreReady: function () {
-        console.log('Store ready, go ahead!');
-        console.log('The store is accessible at window.store_1_1');
+      autoIncrement: true
+    });
+    window['store_1_1'].ready.then(function(){
+      console.log('Store ready, go ahead!');
+      console.log('The store is accessible at window.store_1_1');
 
-        document.getElementById('openWrapper').style.display = 'none';
-        document.getElementById('dataWrapper').style.display = '';
-      }
+      document.getElementById('openWrapper').style.display = 'none';
+      document.getElementById('dataWrapper').style.display = '';
     });
   }
 

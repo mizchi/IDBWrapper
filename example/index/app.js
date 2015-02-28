@@ -1,48 +1,48 @@
 require(['../../idbstore.js'], function(IDBStore){
-	
+
 	var tpls = {
 		row: '<tr><td>{customerid}</td><td>{lastname}</td><td>{firstname}</td><td>{age}</td><td><button onclick="app.deleteItem({customerid});">delete</button></td></tr>',
 		table: '<table><tr><th>ID</th><th>Last Name</th><th>First Name</th><th>Age</th><th></th></tr>{content}</table>'
 	};
-	
+
 	var customers;
-	
+
 	var nodeCache = {};
-	
+
 	function init(){
-		
+
 		// create a store ("table") for the customers
 		customers = app.customers = new IDBStore({
       dbVersion: 1,
 			storeName: 'customer-index',
 			keyPath: 'customerid',
 			autoIncrement: true,
-			onStoreReady: refreshTable,
       indexes: [
         { name: 'lastname', keyPath: 'lastname', unique: false, multiEntry: false }
       ]
 		});
-		
+		customers.ready.then(refreshTable);
+
 		// create references for some nodes we have to work with
-		[
+		([
       'submit', 'submitQuery',
       'upper', 'lower', 'excludeLower', 'excludeUpper',
       'sortOrder', 'index', 'filterDuplicates',
       'customerid', 'firstname', 'lastname', 'age',
       'results-container'
-    ].forEach(function(id){
+    ]).forEach(function(id){
 			nodeCache[id] = document.getElementById(id);
 		});
-		
+
 		// and listen to the form's submit buttons.
 		nodeCache.submit.addEventListener('click', enterData);
     nodeCache.submitQuery.addEventListener('click', runQuery);
 	}
-	
+
 	function refreshTable(){
-		customers.getAll(listItems);
+		customers.getAll().then(listItems);
 	}
-	
+
 	function listItems(data){
 		var content = '';
 		data.forEach(function(item){
@@ -52,7 +52,7 @@ require(['../../idbstore.js'], function(IDBStore){
 		});
 		nodeCache['results-container'].innerHTML = tpls.table.replace('{content}', content);
 	}
-	
+
 	function enterData(){
 		// read data from inputs…
 		var data = {};
@@ -65,22 +65,23 @@ require(['../../idbstore.js'], function(IDBStore){
 				data[key] = value;
 			}
 		});
-		
+
 		// …and store them away.
-		customers.put(data, function(){
+		customers.put(data)
+		.then(function(){
 			clearForm();
 			refreshTable();
 		});
 	}
-	
+
 	function clearForm(){
 		['customerid','firstname','lastname', 'age'].forEach(function(id){
 			nodeCache[id].value = '';
 		});
 	}
-	
+
 	function deleteItem(id){
-		customers.remove(id, refreshTable);
+		customers.remove(id).then(refreshTable);
 	}
 
   function makeRandomEntry(){
@@ -100,7 +101,7 @@ require(['../../idbstore.js'], function(IDBStore){
   function addRandomCustomer(){
     var data = makeRandomEntry();
 
-    customers.put(data, function(){
+    customers.put(data).then(function(){
       clearForm();
       refreshTable();
     });
@@ -149,15 +150,15 @@ require(['../../idbstore.js'], function(IDBStore){
       onEnd: onEnd
     });
   }
-	
+
 	// export some functions to the outside to
 	// make the onclick="" attributes work.
 	window.app = {
 		deleteItem: deleteItem,
     addRandomCustomer: addRandomCustomer
 	};
-	
+
 	// go!
 	init();
-	
+
 });
