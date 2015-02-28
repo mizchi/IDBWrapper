@@ -135,17 +135,7 @@
       _reject = reject;
     });
 
-    // this.openDB(function(){
-    //
-    //   _done();
-    //   onStoreReady();
-    // },function(){
-    //   _reject();
-    // });
-    //
-
     this.onStoreReady = function(){
-      onStoreReady && onStoreReady();
       _done();
     };
 

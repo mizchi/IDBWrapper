@@ -11,7 +11,6 @@ describe('IDBWrapper', function(){
       return store.ready;
     });
 
-
     it('should store a well-formed object', function(done){
       var data = {
         id: 1,
@@ -94,11 +93,12 @@ describe('IDBWrapper', function(){
 
     var store;
 
-    before(function(done){
+    before(function(){
       store = new IDBStore({
         storeName: 'spec-store-simple-out-of-line',
         keyPath: null
-      }, done);
+      });
+      return store.ready;
     });
 
 
@@ -169,10 +169,11 @@ describe('IDBWrapper', function(){
       }
     ];
 
-    before(function(done){
+    before(function(){
       store = new IDBStore({
         storeName: 'spec-store-simple'
-      }, done);
+      });
+      return store.ready;
     });
 
 
@@ -233,7 +234,8 @@ describe('IDBWrapper', function(){
     before(function(done){
       store = new IDBStore({
         storeName: 'spec-store-simple'
-      }, function(){
+      });
+      store.ready.then(function(){
         store.putBatch(dataArray, function(){
           done();
         }, done);
@@ -301,7 +303,7 @@ describe('IDBWrapper', function(){
 
     var store;
 
-    before(function(done){
+    before(function(){
       store = new IDBStore({
         storeName: 'spec-store-indexes',
         indexes: [
@@ -310,7 +312,8 @@ describe('IDBWrapper', function(){
           { name: 'date', keyPath: 'joined', unique: false, multiEntry: false },
           { name: 'compound', keyPath: ['name', 'age'], unique: false, multiEntry: false }
         ]
-      }, done);
+      });
+      return store.ready;
     });
 
     it('should create all indexes', function(){
@@ -358,8 +361,8 @@ describe('IDBWrapper', function(){
           { name: 'date', keyPath: 'joined', unique: false, multiEntry: false },
           { name: 'compound', keyPath: ['name', 'age'], unique: false, multiEntry: false }
         ]
-      }, function(){
-
+      })
+      store.ready.then(function(){
         var dataArray = [
           {
             id: 1,
