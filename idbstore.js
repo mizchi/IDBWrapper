@@ -42,7 +42,7 @@
    *
    * @constructor
    * @name IDBStore
-   * @version 1.4.1
+   * @version 2.1.0
    *
    * @param {Object} [kwArgs] An options object used to configure the store and
    *  set callbacks
@@ -159,7 +159,7 @@
      *
      * @type String
      */
-    version: '1.4.1',
+    version: '2.1.0',
 
     /**
      * A reference to the IndexedDB object
@@ -423,10 +423,6 @@
      *  is set to use out-of-line keys. For inline keys - the default scenario -
      *  this can be omitted.
      * @param {Object} value The data object to store.
-     * @param {Function} [onSuccess] A callback that is called if insertion
-     *  was successful.
-     * @param {Function} [onError] A callback that is called if insertion
-     *  failed.
      * @returns {IDBTransaction} The transaction used for this operation.
      * @example
         // Storing an object, using inline keys (the default scenario):
@@ -484,10 +480,6 @@
      * the success handler will be called with null as first and only argument.
      *
      * @param {*} key The id of the object to fetch.
-     * @param {Function} [onSuccess] A callback that is called if fetching
-     *  was successful. Will receive the object as only argument.
-     * @param {Function} [onError] A callback that will be called if an error
-     *  occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
     get: function (key) {
@@ -821,10 +813,6 @@
     /**
      * Clears the store, i.e. deletes all entries in the store.
      *
-     * @param {Function} [onSuccess] A callback that will be called if the
-     *  operation was successful.
-     * @param {Function} [onError] A callback that will be called if an
-     *  error occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
     clear: function () {

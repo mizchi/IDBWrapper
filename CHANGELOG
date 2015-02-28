@@ -1,3 +1,15 @@
+2.1.0 / 02-28-2015
+------------------
+
+* Rewrite from scratch to work in Firefox
+* Restore files
+
+2.0.0 / 02-27-2015
+------------------
+
+* Forked by mizchi
+* Rewrite for Promise
+
 1.4.1 / 11-11-2013
 ------------------
 
@@ -5,8 +17,6 @@
 * Fix issue when using out-of-line keyPath setup with IE10
 * Fix issue when using compound indexes (keyPath sequences)
 * Add integration tests
-
-
 
 1.4.0 / 24-09-2013
 ------------------
@@ -96,4 +106,3 @@
 ------------------
 
 * Start versioning
-

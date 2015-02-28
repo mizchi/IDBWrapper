@@ -1,10 +1,44 @@
-[![NPM version](https://badge.fury.io/js/idb-wrapper.svg)](http://badge.fury.io/js/idb-wrapper) [![Dependency Status](https://gemnasium.com/jensarps/IDBWrapper.png)](https://gemnasium.com/jensarps/IDBWrapper)
-----
+# idb-wrapper-promisify
+
+2015 - Rewrite idb-wrapper for promise.
+
+```
+$ npm install idb-wrapper-promisify
+```
+
+## Example
+
+```javascript
+var store = new IDBStore({
+  storeName: 'spec-store-simple'
+});
+
+// put
+store.ready
+.then(() => store.put({id: 1}))
+.then(insertedId => console.log('put done:', insertedId));
+
+// getAll
+store.ready
+.then(() => store.getAll())
+.then(data => console.log('result:', data));
+```
+
+See detail in specs
+
+## TODO
+
+- Rewrite example
+- Rewrite README below
+
+------------------
+
 **IDBWrapper** is a cross-browser wrapper for the HTML5 IndexedDB API. While this
 API is the future of offline storage, it is not very intuitive to use.
 IDBWrapper is there to provide easy access to IndexedDB's features.
 
-##Browser Support
+
+## Browser Support
 
 IDBWrapper works on all browsers supporting the IndexedDB API, which are:
 
@@ -564,4 +598,3 @@ The `countOptions` object may have one or more of the following properties:
 index: The name of an index to operate on.
 
 keyRange: A keyRange to use
-

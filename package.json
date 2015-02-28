@@ -1,16 +1,20 @@
 {
-  "name": "idb-wrapper",
-  "version": "1.4.1",
-  "description": "A cross-browser wrapper for IndexedDB",
+  "name": "idb-wrapper-promisify",
+  "version": "2.1.0",
+  "description": "A cross-browser wrapper for IndexedDB with Promise",
   "keywords": [
     "storage",
     "offline",
+    "promise",
     "IndexedDB"
   ],
-  "author": "jensarps <mail@jensarps.de> (http://jensarps.de/)",
-  "repository": "git://github.com/jensarps/IDBWrapper.git",
-  "main": "idbstore",
-  "homepage": "https://github.com/jensarps/IDBWrapper",
+  "author": [
+    "mizchi <mizchi@gmail.com>",
+    "jensarps <mail@jensarps.de> (http://jensarps.de/)"
+  ],
+  "repository": "git://github.com/mizchi/idb-wrapper-promisify.git",
+  "main": "index",
+  "homepage": "https://github.com/mizchi/idb-wrapper-promisify",
   "contributors": [
     "Josh Matthews <josh@joshmatthews.net> (http://www.joshmatthews.net/blog/)",
     "Raynos <raynos2@gmail.com> (http://raynos.org)",
@@ -19,18 +23,18 @@
     "Asa Ayers <asa.ayers@gmail.com>"
   ],
   "bugs": {
-    "url": "https://github.com/jensarps/IDBWrapper/issues",
-    "email": "mail@jensarps.de"
+    "url": "https://github.com/mizchi/idb-wrapper-promisify/issues"
   },
   "dependencies": {},
   "devDependencies": {
-    "mocha": "2.1.0",
-    "chai": "~1.8.1"
+    "bluebird": "^2.9.13",
+    "chai": "~1.8.1",
+    "mocha": "2.1.0"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "http://github.com/jensarps/IDBWrapper/raw/master/LICENSE"
+      "url": "http://github.com/mizchi/idb-wrapper-promisify/raw/master/LICENSE"
     }
   ],
   "scripts": {}
