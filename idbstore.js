@@ -873,29 +873,26 @@
      *  error occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    clear: function (onSuccess, onError) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
+    clear: function () {
+      return new Promise(function(done, reject){
+        var hasSuccess = false,
+            result = null;
 
-      var hasSuccess = false,
-          result = null;
+        var clearTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+        clearTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        clearTransaction.onabort = reject;
+        clearTransaction.onerror = reject;
 
-      var clearTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
-      clearTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      clearTransaction.onabort = onError;
-      clearTransaction.onerror = onError;
-
-      var clearRequest = clearTransaction.objectStore(this.storeName).clear();
-      clearRequest.onsuccess = function (event) {
-        hasSuccess = true;
-        result = event.target.result;
-      };
-      clearRequest.onerror = onError;
-
-      return clearTransaction;
+        var clearRequest = clearTransaction.objectStore(this.storeName).clear();
+        clearRequest.onsuccess = function (event) {
+          hasSuccess = true;
+          result = event.target.result;
+        };
+        clearRequest.onerror = reject;
+      }.bind(this));
     },
 
     /**
