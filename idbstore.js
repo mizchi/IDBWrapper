@@ -138,6 +138,9 @@
     this.onStoreReady = function(){
       _done();
     };
+    this.onError = function(){
+      _reject();
+    };
 
     this.openDB();
   };
