@@ -1,6 +1,6 @@
 {
   "name": "idb-wrapper-promisify",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A cross-browser wrapper for IndexedDB with Promise",
   "keywords": [
     "storage",
