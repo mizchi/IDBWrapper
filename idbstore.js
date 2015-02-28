@@ -974,207 +974,198 @@
      *  if an error occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    iterate: function (onItem, options) {
-      options = mixin({
-        index: null,
-        order: 'ASC',
-        autoContinue: true,
-        filterDuplicates: false,
-        keyRange: null,
-        writeAccess: false,
-        onEnd: null,
-        onError: defaultErrorHandler
-      }, options || {});
+     iterate: function (onItem, options) {
+       return new Promise(function(done, reject){
+         options = mixin({
+           index: null,
+           order: 'ASC',
+           autoContinue: true,
+           filterDuplicates: false,
+           keyRange: null,
+           writeAccess: false,
+           onEnd: null
+         }, (options || {}));
 
-      var directionType = options.order.toLowerCase() == 'desc' ? 'PREV' : 'NEXT';
-      if (options.filterDuplicates) {
-        directionType += '_NO_DUPLICATE';
-      }
+         var directionType = options.order.toLowerCase() == 'desc' ? 'PREV' : 'NEXT';
+         if (options.filterDuplicates) {
+           directionType += '_NO_DUPLICATE';
+         }
 
-      var hasSuccess = false;
-      var cursorTransaction = this.db.transaction([this.storeName], this.consts[options.writeAccess ? 'READ_WRITE' : 'READ_ONLY']);
-      var cursorTarget = cursorTransaction.objectStore(this.storeName);
-      if (options.index) {
-        cursorTarget = cursorTarget.index(options.index);
-      }
+         var hasSuccess = false;
+         var cursorTransaction = this.db.transaction([this.storeName], this.consts[options.writeAccess ? 'READ_WRITE' : 'READ_ONLY']);
+         var cursorTarget = cursorTransaction.objectStore(this.storeName);
+         if (options.index) {
+           cursorTarget = cursorTarget.index(options.index);
+         }
 
-      cursorTransaction.oncomplete = function () {
-        if (!hasSuccess) {
-          options.onError(null);
-          return;
-        }
-        if (options.onEnd) {
-          options.onEnd();
-        } else {
-          onItem(null);
-        }
-      };
-      cursorTransaction.onabort = options.onError;
-      cursorTransaction.onerror = options.onError;
+         cursorTransaction.oncomplete = function () {
+           if (!hasSuccess) {
+             reject(null);
+             return;
+           }
+           done();
+         };
+         cursorTransaction.onabort = reject;
+         cursorTransaction.onerror = reject;
 
-      var cursorRequest = cursorTarget.openCursor(options.keyRange, this.consts[directionType]);
-      cursorRequest.onerror = options.onError;
-      cursorRequest.onsuccess = function (event) {
-        var cursor = event.target.result;
-        if (cursor) {
-          onItem(cursor.value, cursor, cursorTransaction);
-          if (options.autoContinue) {
-            cursor['continue']();
-          }
-        } else {
-          hasSuccess = true;
-        }
-      };
+         var cursorRequest = cursorTarget.openCursor(options.keyRange, this.consts[directionType]);
+         cursorRequest.onerror = reject;
+         cursorRequest.onsuccess = function (event) {
+           var cursor = event.target.result;
+           if (cursor) {
+             onItem(cursor.value, cursor, cursorTransaction);
+             if (options.autoContinue) {
+               cursor['continue']();
+             }
+           } else {
+             hasSuccess = true;
+           }
+         };
+       }.bind(this));
 
-      return cursorTransaction;
-    },
+     },
 
-    /**
-     * Runs a query against the store and passes an array containing matched
-     * objects to the success handler.
-     *
-     * @param {Function} onSuccess A callback to be called when the operation
-     *  was successful.
-     * @param {Object} [options] An object defining specific query options
-     * @param {Object} [options.index=null] An IDBIndex to operate on
-     * @param {String} [options.order=ASC] The order in which to provide the
-     *  results, can be 'DESC' or 'ASC'
-     * @param {Boolean} [options.filterDuplicates=false] Whether to exclude
-     *  duplicate matches
-     * @param {Object} [options.keyRange=null] An IDBKeyRange to use
-     * @param {Function} [options.onError=throw] A callback to be called if an error
-     *  occurred during the operation.
-     * @returns {IDBTransaction} The transaction used for this operation.
-     */
-    query: function (onSuccess, options) {
-      var result = [];
-      options = options || {};
-      options.onEnd = function () {
-        onSuccess(result);
-      };
-      return this.iterate(function (item) {
-        result.push(item);
-      }, options);
-    },
+     /**
+      * Runs a query against the store and passes an array containing matched
+      * objects to the success handler.
+      *
+      * @param {Object} [options] An object defining specific query options
+      * @param {Object} [options.index=null] An IDBIndex to operate on
+      * @param {String} [options.order=ASC] The order in which to provide the
+      *  results, can be 'DESC' or 'ASC'
+      * @param {Boolean} [options.filterDuplicates=false] Whether to exclude
+      *  duplicate matches
+      * @param {Object} [options.keyRange=null] An IDBKeyRange to use
+      * @param {Function} [options.reject=throw] A callback to be called if an error
+      *  occurred during the operation.
+      * @returns {IDBTransaction} The transaction used for this operation.
+      */
+     query: function (options) {
+       options = options || {};
+       var result = [];
+       return this.iterate(function (item) {
+         result.push(item);
+       }, options)
+       .then(function(){
+         return Promise.resolve(result);
+       });
+     },
 
-    /**
-     *
-     * Runs a query against the store, but only returns the number of matches
-     * instead of the matches itself.
-     *
-     * @param {Function} onSuccess A callback to be called if the opration
-     *  was successful.
-     * @param {Object} [options] An object defining specific options
-     * @param {Object} [options.index=null] An IDBIndex to operate on
-     * @param {Object} [options.keyRange=null] An IDBKeyRange to use
-     * @param {Function} [options.onError=throw] A callback to be called if an error
-     *  occurred during the operation.
-     * @returns {IDBTransaction} The transaction used for this operation.
-     */
-    count: function (onSuccess, options) {
+     /**
+      *
+      * Runs a query against the store, but only returns the number of matches
+      * instead of the matches itself.
+      *
+      * @param {Object} [options] An object defining specific options
+      * @param {Object} [options.index=null] An IDBIndex to operate on
+      * @param {Object} [options.keyRange=null] An IDBKeyRange to use
+      * @param {Function} [options.reject=throw] A callback to be called if an error
+      *  occurred during the operation.
+      * @returns {IDBTransaction} The transaction used for this operation.
+      */
+     count: function (done, options) {
 
-      options = mixin({
-        index: null,
-        keyRange: null
-      }, options || {});
+       options = mixin({
+         index: null,
+         keyRange: null
+       }, options || {});
 
-      var onError = options.onError || defaultErrorHandler;
+       var reject = options.reject;
 
-      var hasSuccess = false,
-          result = null;
+       var hasSuccess = false,
+           result = null;
 
-      var cursorTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
-      cursorTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      cursorTransaction.onabort = onError;
-      cursorTransaction.onerror = onError;
+       var cursorTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+       cursorTransaction.oncomplete = function () {
+         var callback = hasSuccess ? done : reject;
+         callback(result);
+       };
+       cursorTransaction.onabort = reject;
+       cursorTransaction.onerror = reject;
 
-      var cursorTarget = cursorTransaction.objectStore(this.storeName);
-      if (options.index) {
-        cursorTarget = cursorTarget.index(options.index);
-      }
-      var countRequest = cursorTarget.count(options.keyRange);
-      countRequest.onsuccess = function (evt) {
-        hasSuccess = true;
-        result = evt.target.result;
-      };
-      countRequest.onError = onError;
+       var cursorTarget = cursorTransaction.objectStore(this.storeName);
+       if (options.index) {
+         cursorTarget = cursorTarget.index(options.index);
+       }
+       var countRequest = cursorTarget.count(options.keyRange);
+       countRequest.onsuccess = function (evt) {
+         hasSuccess = true;
+         result = evt.target.result;
+       };
+       countRequest.reject = reject;
 
-      return cursorTransaction;
-    },
+       return cursorTransaction;
+     },
 
-    /**************/
-    /* key ranges */
-    /**************/
+     /**************/
+     /* key ranges */
+     /**************/
 
-    /**
-     * Creates a key range using specified options. This key range can be
-     * handed over to the count() and iterate() methods.
-     *
-     * Note: You must provide at least one or both of "lower" or "upper" value.
-     *
-     * @param {Object} options The options for the key range to create
-     * @param {*} [options.lower] The lower bound
-     * @param {Boolean} [options.excludeLower] Whether to exclude the lower
-     *  bound passed in options.lower from the key range
-     * @param {*} [options.upper] The upper bound
-     * @param {Boolean} [options.excludeUpper] Whether to exclude the upper
-     *  bound passed in options.upper from the key range
-     * @param {*} [options.only] A single key value. Use this if you need a key
-     *  range that only includes one value for a key. Providing this
-     *  property invalidates all other properties.
-     * @return {Object} The IDBKeyRange representing the specified options
-     */
-    makeKeyRange: function(options){
-      /*jshint onecase:true */
-      var keyRange,
-          hasLower = typeof options.lower != 'undefined',
-          hasUpper = typeof options.upper != 'undefined',
-          isOnly = typeof options.only != 'undefined';
+     /**
+      * Creates a key range using specified options. This key range can be
+      * handed over to the count() and iterate() methods.
+      *
+      * Note: You must provide at least one or both of "lower" or "upper" value.
+      *
+      * @param {Object} options The options for the key range to create
+      * @param {*} [options.lower] The lower bound
+      * @param {Boolean} [options.excludeLower] Whether to exclude the lower
+      *  bound passed in options.lower from the key range
+      * @param {*} [options.upper] The upper bound
+      * @param {Boolean} [options.excludeUpper] Whether to exclude the upper
+      *  bound passed in options.upper from the key range
+      * @param {*} [options.only] A single key value. Use this if you need a key
+      *  range that only includes one value for a key. Providing this
+      *  property invalidates all other properties.
+      * @return {Object} The IDBKeyRange representing the specified options
+      */
+     makeKeyRange: function(options){
+       /*jshint onecase:true */
+       var keyRange,
+           hasLower = typeof options.lower != 'undefined',
+           hasUpper = typeof options.upper != 'undefined',
+           isOnly = typeof options.only != 'undefined';
 
-      switch(true){
-        case isOnly:
-          keyRange = this.keyRange.only(options.only);
-          break;
-        case hasLower && hasUpper:
-          keyRange = this.keyRange.bound(options.lower, options.upper, options.excludeLower, options.excludeUpper);
-          break;
-        case hasLower:
-          keyRange = this.keyRange.lowerBound(options.lower, options.excludeLower);
-          break;
-        case hasUpper:
-          keyRange = this.keyRange.upperBound(options.upper, options.excludeUpper);
-          break;
-        default:
-          throw new Error('Cannot create KeyRange. Provide one or both of "lower" or "upper" value, or an "only" value.');
-      }
+       switch(true){
+         case isOnly:
+           keyRange = this.keyRange.only(options.only);
+           break;
+         case hasLower && hasUpper:
+           keyRange = this.keyRange.bound(options.lower, options.upper, options.excludeLower, options.excludeUpper);
+           break;
+         case hasLower:
+           keyRange = this.keyRange.lowerBound(options.lower, options.excludeLower);
+           break;
+         case hasUpper:
+           keyRange = this.keyRange.upperBound(options.upper, options.excludeUpper);
+           break;
+         default:
+           throw new Error('Cannot create KeyRange. Provide one or both of "lower" or "upper" value, or an "only" value.');
+       }
 
-      return keyRange;
+       return keyRange;
 
-    }
+     }
 
-  };
+   };
 
-  /** helpers **/
+   /** helpers **/
 
-  var noop = function () {
-  };
-  var empty = {};
-  var mixin = function (target, source) {
-    var name, s;
-    for (name in source) {
-      s = source[name];
-      if (s !== empty[name] && s !== target[name]) {
-        target[name] = s;
-      }
-    }
-    return target;
-  };
+   var empty = {};
+   var mixin = function (target, source) {
+     var name, s;
+     for (name in source) {
+       s = source[name];
+       if (s !== empty[name] && s !== target[name]) {
+         target[name] = s;
+       }
+     }
+     return target;
+   };
 
-  IDBStore.version = IDBStore.prototype.version;
+   IDBStore.version = IDBStore.prototype.version;
 
-  return IDBStore;
+   return IDBStore;
+
 
 }, this);
