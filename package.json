@@ -13,7 +13,7 @@
     "jensarps <mail@jensarps.de> (http://jensarps.de/)"
   ],
   "repository": "git://github.com/mizchi/idb-wrapper-promisify.git",
-  "main": "index",
+  "main": "idbstore.js",
   "homepage": "https://github.com/mizchi/idb-wrapper-promisify",
   "contributors": [
     "Josh Matthews <josh@joshmatthews.net> (http://www.joshmatthews.net/blog/)",
