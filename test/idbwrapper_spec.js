@@ -4,10 +4,11 @@ describe('IDBWrapper', function(){
 
     var store;
 
-    before(function(done){
+    before(function(){
       store = new IDBStore({
         storeName: 'spec-store-simple'
-      }, done);
+      });
+      return store.ready;
     });
 
 

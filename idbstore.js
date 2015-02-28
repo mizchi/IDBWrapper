@@ -111,8 +111,6 @@
     this.dbName = this.storePrefix + this.storeName;
     this.dbVersion = parseInt(this.dbVersion, 10) || 1;
 
-    onStoreReady && (this.onStoreReady = onStoreReady);
-
     var env = typeof window == 'object' ? window : self;
     this.idb = env.indexedDB || env.webkitIndexedDB || env.mozIndexedDB;
     this.keyRange = env.IDBKeyRange || env.webkitIDBKeyRange || env.mozIDBKeyRange;
@@ -129,6 +127,26 @@
       'NEXT_NO_DUPLICATE': 'nextunique',
       'PREV':              'prev',
       'PREV_NO_DUPLICATE': 'prevunique'
+    };
+
+    var _done, _reject;
+    this.ready = new Promise(function(done, reject){
+      _done = done;
+      _reject = reject;
+    });
+
+    // this.openDB(function(){
+    //
+    //   _done();
+    //   onStoreReady();
+    // },function(){
+    //   _reject();
+    // });
+    //
+
+    this.onStoreReady = function(){
+      onStoreReady && onStoreReady();
+      _done();
     };
 
     this.openDB();
@@ -488,7 +506,7 @@
 
       var hasSuccess = false,
           result = null;
-      
+
       var getTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
       getTransaction.oncomplete = function () {
         var callback = hasSuccess ? onSuccess : onError;
@@ -566,7 +584,7 @@
       };
       batchTransaction.onabort = onError;
       batchTransaction.onerror = onError;
-      
+
       var count = dataArray.length;
       var called = false;
       var hasSuccess = false;
