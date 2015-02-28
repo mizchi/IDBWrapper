@@ -446,41 +446,38 @@
        myCustomerStore.put(2346223, myCustomer, mySuccessHandler, myErrorHandler);
       // Note that passing success- and error-handlers is optional.
      */
-    put: function (key, value, onSuccess, onError) {
-      if (this.keyPath !== null) {
-        onError = onSuccess;
-        onSuccess = value;
-        value = key;
-      }
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
+     put: function (key, value) {
+       return new Promise(function(done, reject){
+         if (this.keyPath !== null) {
+           value = key;
+         }
 
-      var hasSuccess = false,
-          result = null,
-          putRequest;
+         var hasSuccess = false,
+             result = null,
+             putRequest;
 
-      var putTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
-      putTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      putTransaction.onabort = onError;
-      putTransaction.onerror = onError;
+         var putTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+         putTransaction.oncomplete = function () {
+           var callback = hasSuccess ? done : reject;
+           callback(result);
+         };
+         putTransaction.onabort = reject;
+         putTransaction.onerror = reject;
 
-      if (this.keyPath !== null) { // in-line keys
-        this._addIdPropertyIfNeeded(value);
-        putRequest = putTransaction.objectStore(this.storeName).put(value);
-      } else { // out-of-line keys
-        putRequest = putTransaction.objectStore(this.storeName).put(value, key);
-      }
-      putRequest.onsuccess = function (event) {
-        hasSuccess = true;
-        result = event.target.result;
-      };
-      putRequest.onerror = onError;
+         if (this.keyPath !== null) { // in-line keys
+           this._addIdPropertyIfNeeded(value);
+           putRequest = putTransaction.objectStore(this.storeName).put(value);
+         } else { // out-of-line keys
+           putRequest = putTransaction.objectStore(this.storeName).put(value, key);
+         }
+         putRequest.onsuccess = function (event) {
+           hasSuccess = true;
+           result = event.target.result;
+         };
 
-      return putTransaction;
-    },
+         putRequest.onerror = reject;
+       }.bind(this));
+     },
 
     /**
      * Retrieves an object from the store. If no entry exists with the given id,
@@ -493,63 +490,52 @@
      *  occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    get: function (key, onSuccess, onError) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
+    get: function (key) {
+      return new Promise(function(done, reject){
+        var hasSuccess = false,
+            result = null;
 
-      var hasSuccess = false,
-          result = null;
-
-      var getTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
-      getTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      getTransaction.onabort = onError;
-      getTransaction.onerror = onError;
-      var getRequest = getTransaction.objectStore(this.storeName).get(key);
-      getRequest.onsuccess = function (event) {
-        hasSuccess = true;
-        result = event.target.result;
-      };
-      getRequest.onerror = onError;
-
-      return getTransaction;
+        var getTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
+        getTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        getTransaction.onabort = reject;
+        getTransaction.onerror = reject;
+        var getRequest = getTransaction.objectStore(this.storeName).get(key);
+        getRequest.onsuccess = function (event) {
+          hasSuccess = true;
+          result = event.target.result;
+        };
+        getRequest.onerror = reject;
+      }.bind(this));
     },
-
     /**
      * Removes an object from the store.
      *
      * @param {*} key The id of the object to remove.
-     * @param {Function} [onSuccess] A callback that is called if the removal
-     *  was successful.
-     * @param {Function} [onError] A callback that will be called if an error
-     *  occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    remove: function (key, onSuccess, onError) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
+    remove: function (key) {
+      return new Promise(function(done, reject){
+        var hasSuccess = false,
+            result = null;
 
-      var hasSuccess = false,
-          result = null;
+        var removeTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
+        removeTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        removeTransaction.onabort = reject;
+        removeTransaction.onerror = reject;
 
-      var removeTransaction = this.db.transaction([this.storeName], this.consts.READ_WRITE);
-      removeTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      removeTransaction.onabort = onError;
-      removeTransaction.onerror = onError;
-
-      var deleteRequest = removeTransaction.objectStore(this.storeName)['delete'](key);
-      deleteRequest.onsuccess = function (event) {
-        hasSuccess = true;
-        result = event.target.result;
-      };
-      deleteRequest.onerror = onError;
-
-      return removeTransaction;
+        var deleteRequest = removeTransaction.objectStore(this.storeName)['delete'](key);
+        deleteRequest.onsuccess = function (event) {
+          hasSuccess = true;
+          result = event.target.result;
+        };
+        deleteRequest.onerror = reject;
+      }.bind(this));
     },
 
     /**
@@ -557,88 +543,77 @@
      *
      * @param {Array} dataArray An array of objects containing the operation to run
      *  and the data object (for put operations).
-     * @param {Function} [onSuccess] A callback that is called if all operations
-     *  were successful.
-     * @param {Function} [onError] A callback that is called if an error
-     *  occurred during one of the operations.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    batch: function (dataArray, onSuccess, onError) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
-
-      if(Object.prototype.toString.call(dataArray) != '[object Array]'){
-        onError(new Error('dataArray argument must be of type Array.'));
-      }
-      var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_WRITE);
-      batchTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(hasSuccess);
-      };
-      batchTransaction.onabort = onError;
-      batchTransaction.onerror = onError;
-
-      var count = dataArray.length;
-      var called = false;
-      var hasSuccess = false;
-
-      var onItemSuccess = function () {
-        count--;
-        if (count === 0 && !called) {
-          called = true;
-          hasSuccess = true;
+    batch: function (dataArray) {
+      return new Promise(function(done, reject){
+        if(Object.prototype.toString.call(dataArray) != '[object Array]'){
+          reject(new Error('dataArray argument must be of type Array.'));
         }
-      };
+        var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_WRITE);
+        batchTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(hasSuccess);
+        };
+        batchTransaction.onabort = reject;
+        batchTransaction.onerror = reject;
 
-      dataArray.forEach(function (operation) {
-        var type = operation.type;
-        var key = operation.key;
-        var value = operation.value;
+        var count = dataArray.length;
+        var called = false;
+        var hasSuccess = false;
 
-        var onItemError = function (err) {
-          batchTransaction.abort();
-          if (!called) {
+        var onItemSuccess = function () {
+          count--;
+          if (count === 0 && !called) {
             called = true;
-            onError(err, type, key);
+            hasSuccess = true;
           }
         };
 
-        if (type == 'remove') {
-          var deleteRequest = batchTransaction.objectStore(this.storeName)['delete'](key);
-          deleteRequest.onsuccess = onItemSuccess;
-          deleteRequest.onerror = onItemError;
-        } else if (type == 'put') {
-          var putRequest;
-          if (this.keyPath !== null) { // in-line keys
-            this._addIdPropertyIfNeeded(value);
-            putRequest = batchTransaction.objectStore(this.storeName).put(value);
-          } else { // out-of-line keys
-            putRequest = batchTransaction.objectStore(this.storeName).put(value, key);
-          }
-          putRequest.onsuccess = onItemSuccess;
-          putRequest.onerror = onItemError;
-        }
-      }, this);
+        dataArray.forEach(function (operation) {
+          var type = operation.type;
+          var key = operation.key;
+          var value = operation.value;
 
-      return batchTransaction;
+          var onItemError = function (err) {
+            batchTransaction.abort();
+            if (!called) {
+              called = true;
+              reject(err, type, key);
+            }
+          };
+
+          if (type == 'remove') {
+            var deleteRequest = batchTransaction.objectStore(this.storeName)['delete'](key);
+            deleteRequest.onsuccess = onItemSuccess;
+            deleteRequest.onerror = onItemError;
+          } else if (type == 'put') {
+            var putRequest;
+            if (this.keyPath !== null) { // in-line keys
+              this._addIdPropertyIfNeeded(value);
+              putRequest = batchTransaction.objectStore(this.storeName).put(value);
+            } else { // out-of-line keys
+              putRequest = batchTransaction.objectStore(this.storeName).put(value, key);
+            }
+            putRequest.onsuccess = onItemSuccess;
+            putRequest.onerror = onItemError;
+          }
+        }, this);
+      }.bind(this));
     },
 
     /**
      * Takes an array of objects and stores them in a single transaction.
      *
      * @param {Array} dataArray An array of objects to store
-     * @param {Function} [onSuccess] A callback that is called if all operations
-     *  were successful.
-     * @param {Function} [onError] A callback that is called if an error
-     *  occurred during one of the operations.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    putBatch: function (dataArray, onSuccess, onError) {
+    putBatch: function (dataArray) {
       var batchData = dataArray.map(function(item){
         return { type: 'put', value: item };
       });
 
-      return this.batch(batchData, onSuccess, onError);
+      return this.batch(batchData);
     },
 
     /**
@@ -646,28 +621,20 @@
      * transaction.
      *
      * @param {Array} keyArray An array of keys to remove
-     * @param {Function} [onSuccess] A callback that is called if all operations
-     *  were successful.
-     * @param {Function} [onError] A callback that is called if an error
-     *  occurred during one of the operations.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    removeBatch: function (keyArray, onSuccess, onError) {
+    removeBatch: function (keyArray) {
       var batchData = keyArray.map(function(key){
         return { type: 'remove', key: key };
       });
 
-      return this.batch(batchData, onSuccess, onError);
+      return this.batch(batchData);
     },
 
     /**
      * Takes an array of keys and fetches matching objects
      *
      * @param {Array} keyArray An array of keys identifying the objects to fetch
-     * @param {Function} [onSuccess] A callback that is called if all operations
-     *  were successful.
-     * @param {Function} [onError] A callback that is called if an error
-     *  occurred during one of the operations.
      * @param {String} [arrayType='sparse'] The type of array to pass to the
      *  success handler. May be one of 'sparse', 'dense' or 'skip'. Defaults to
      *  'sparse'. This parameter specifies how to handle the situation if a get
@@ -678,7 +645,7 @@
      * @example
      // given that there are two objects in the database with the keypath
      // values 1 and 2, and the call looks like this:
-     myStore.getBatch([1, 5, 2], onError, function (data) { … }, arrayType);
+     myStore.getBatch([1, 5, 2], reject, function (data) { … }, arrayType);
 
      // this is what the `data` array will be like:
 
@@ -717,81 +684,71 @@
      // times, with the index parameter not matching the index of the key in the
      // keyArray.
      */
-    getBatch: function (keyArray, onSuccess, onError, arrayType) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
-      arrayType || (arrayType = 'sparse');
 
-      if(Object.prototype.toString.call(keyArray) != '[object Array]'){
-        onError(new Error('keyArray argument must be of type Array.'));
-      }
-      var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_ONLY);
-      batchTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      batchTransaction.onabort = onError;
-      batchTransaction.onerror = onError;
+    getBatch: function (keyArray, arrayType) {
+      return new Promise(function(done, reject){
+        arrayType || (arrayType = 'sparse');
 
-      var data = [];
-      var count = keyArray.length;
-      var called = false;
-      var hasSuccess = false;
-      var result = null;
-
-      var onItemSuccess = function (event) {
-        if (event.target.result || arrayType == 'dense') {
-          data.push(event.target.result);
-        } else if (arrayType == 'sparse') {
-          data.length++;
+        if(Object.prototype.toString.call(keyArray) != '[object Array]'){
+          reject(new Error('keyArray argument must be of type Array.'));
         }
-        count--;
-        if (count === 0) {
-          called = true;
-          hasSuccess = true;
-          result = data;
-        }
-      };
+        var batchTransaction = this.db.transaction([this.storeName] , this.consts.READ_ONLY);
+        batchTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        batchTransaction.onabort = reject;
+        batchTransaction.onerror = reject;
 
-      keyArray.forEach(function (key) {
+        var data = [];
+        var count = keyArray.length;
+        var called = false;
+        var hasSuccess = false;
+        var result = null;
 
-        var onItemError = function (err) {
-          called = true;
-          result = err;
-          onError(err);
-          batchTransaction.abort();
+        var onItemSuccess = function (event) {
+          if (event.target.result || arrayType == 'dense') {
+            data.push(event.target.result);
+          } else if (arrayType == 'sparse') {
+            data.length++;
+          }
+          count--;
+          if (count === 0) {
+            called = true;
+            hasSuccess = true;
+            result = data;
+          }
         };
 
-        var getRequest = batchTransaction.objectStore(this.storeName).get(key);
-        getRequest.onsuccess = onItemSuccess;
-        getRequest.onerror = onItemError;
+        keyArray.forEach(function (key) {
 
-      }, this);
+          var onItemError = function (err) {
+            called = true;
+            result = err;
+            reject(err);
+            batchTransaction.abort();
+          };
 
-      return batchTransaction;
+          var getRequest = batchTransaction.objectStore(this.storeName).get(key);
+          getRequest.onsuccess = onItemSuccess;
+          getRequest.onerror = onItemError;
+
+        }, this);
+      }.bind(this));
     },
 
     /**
      * Fetches all entries in the store.
-     *
-     * @param {Function} [onSuccess] A callback that is called if the operation
-     *  was successful. Will receive an array of objects.
-     * @param {Function} [onError] A callback that will be called if an error
-     *  occurred during the operation.
      * @returns {IDBTransaction} The transaction used for this operation.
      */
-    getAll: function (onSuccess, onError) {
-      onError || (onError = defaultErrorHandler);
-      onSuccess || (onSuccess = noop);
+    getAll: function () {
       var getAllTransaction = this.db.transaction([this.storeName], this.consts.READ_ONLY);
       var store = getAllTransaction.objectStore(this.storeName);
       if (store.getAll) {
-        this._getAllNative(getAllTransaction, store, onSuccess, onError);
+        return this._getAllNative(getAllTransaction, store);
       } else {
-        this._getAllCursor(getAllTransaction, store, onSuccess, onError);
+        return this._getAllCursor(getAllTransaction, store);
       }
-
-      return getAllTransaction;
     },
 
     /**
@@ -800,29 +757,27 @@
      *
      * @param {Object} getAllTransaction An open READ transaction.
      * @param {Object} store A reference to the store.
-     * @param {Function} onSuccess A callback that will be called if the
-     *  operation was successful.
-     * @param {Function} onError A callback that will be called if an
-     *  error occurred during the operation.
      * @private
      */
-    _getAllNative: function (getAllTransaction, store, onSuccess, onError) {
-      var hasSuccess = false,
-          result = null;
+    _getAllNative: function (getAllTransaction, store) {
+      return new Promise(function(done, reject){
+        var hasSuccess = false,
+            result = null;
 
-      getAllTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      getAllTransaction.onabort = onError;
-      getAllTransaction.onerror = onError;
+        getAllTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        getAllTransaction.onabort = reject;
+        getAllTransaction.onerror = reject;
 
-      var getAllRequest = store.getAll();
-      getAllRequest.onsuccess = function (event) {
-        hasSuccess = true;
-        result = event.target.result;
-      };
-      getAllRequest.onerror = onError;
+        var getAllRequest = store.getAll();
+        getAllRequest.onsuccess = function (event) {
+          hasSuccess = true;
+          result = event.target.result;
+        };
+        getAllRequest.onerror = reject;
+      }.bind(this));
     },
 
     /**
@@ -831,37 +786,36 @@
      *
      * @param {Object} getAllTransaction An open READ transaction.
      * @param {Object} store A reference to the store.
-     * @param {Function} onSuccess A callback that will be called if the
-     *  operation was successful.
-     * @param {Function} onError A callback that will be called if an
      *  error occurred during the operation.
      * @private
      */
-    _getAllCursor: function (getAllTransaction, store, onSuccess, onError) {
-      var all = [],
-          hasSuccess = false,
-          result = null;
+    _getAllCursor: function (getAllTransaction, store) {
+      return new Promise(function(done, reject){
+        var all = [],
+            hasSuccess = false,
+            result = null;
 
-      getAllTransaction.oncomplete = function () {
-        var callback = hasSuccess ? onSuccess : onError;
-        callback(result);
-      };
-      getAllTransaction.onabort = onError;
-      getAllTransaction.onerror = onError;
+        getAllTransaction.oncomplete = function () {
+          var callback = hasSuccess ? done : reject;
+          callback(result);
+        };
+        getAllTransaction.onabort = reject;
+        getAllTransaction.onerror = reject;
 
-      var cursorRequest = store.openCursor();
-      cursorRequest.onsuccess = function (event) {
-        var cursor = event.target.result;
-        if (cursor) {
-          all.push(cursor.value);
-          cursor['continue']();
-        }
-        else {
-          hasSuccess = true;
-          result = all;
-        }
-      };
-      cursorRequest.onError = onError;
+        var cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = function (event) {
+          var cursor = event.target.result;
+          if (cursor) {
+            all.push(cursor.value);
+            cursor['continue']();
+          }
+          else {
+            hasSuccess = true;
+            result = all;
+          }
+        };
+        cursorRequest.reject = reject;
+      }.bind(this));
     },
 
     /**
